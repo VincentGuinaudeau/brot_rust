@@ -9,6 +9,8 @@ edition = "2021"
 clap = { version = "3.1.18", features = ["derive"] }
 byte-slice-cast = "1.2.1"
 png = "0.17.5"
-rand = "0.8.5"
+fastrand = "1.7.0"
+crossbeam = "0.8.1"
+crossbeam-channel = "0.5.5"
 
 #![feature(iter_intersperse)]

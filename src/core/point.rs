@@ -1,15 +1,15 @@
 
 use std::ops;
 
-// #[derive(Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct Point {
-	r: f32,
-	i: f32,
+	r: f64,
+	i: f64,
 }
 
 impl Point {
 
-	pub fn new(r: f32, i: f32) -> Point {
+	pub fn new(r: f64, i: f64) -> Point {
 		Point { r, i }
 	}
 
@@ -17,11 +17,11 @@ impl Point {
 		Point { r: 0., i: 0. }
 	}
 
-	pub fn r(&self) -> f32 {
+	pub fn r(&self) -> f64 {
 		self.r
 	}
 
-	pub fn i(&self) -> f32 {
+	pub fn i(&self) -> f64 {
 		self.i
 	}
 

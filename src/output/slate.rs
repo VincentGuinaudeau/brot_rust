@@ -56,7 +56,15 @@ impl Slate {
 		let mut writer = encoder.write_header().unwrap();
 
 		// multipling each pixel's value so that the greatest pixel is white
-		let normalized_pixels = self.matrix.iter().map(|pixel| { ((*pixel as u32) * (std::u16::MAX as u32) / (self.max as u32)) as u16 }).collect::<Vec< u16 >>();
+		println!("slat max : {}", self.max);
+		let normalized_pixels = self.matrix.iter().map(|pixel| {
+			if self.max > 0 {
+				((*pixel as u32) * (std::u16::MAX as u32) / (self.max as u32)) as u16
+			}
+			else {
+				0
+			}
+		}).collect::<Vec< u16 >>();
 
 		// inverting endianess if necessarry
 		let tmp_vector: Vec< u8 >;

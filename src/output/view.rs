@@ -1,6 +1,7 @@
 
 use crate::core::point::Point;
 
+#[derive(Copy, Clone)]
 pub struct View {
 
 	/*
@@ -14,17 +15,17 @@ pub struct View {
 	 * internal computed properties
 	 */
 	// The distance bewteen two pixels in the complex plan
-	step: f32
+	step: f64
 }
 
 impl View {
-	pub fn new (x_size: i32, y_size: i32, position: Point, scale: f32) -> View {
+	pub fn new (x_size: i32, y_size: i32, position: Point, scale: f64) -> View {
 		let longer_size    = if x_size < y_size { y_size } else { x_size };
 		View {
 			x_size,
 			y_size,
 			position,
-			step: (scale * 2.) / longer_size as f32,
+			step: (scale * 2.) / longer_size as f64,
 		}	
 	}
 

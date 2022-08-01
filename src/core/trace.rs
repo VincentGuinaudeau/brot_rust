@@ -1,7 +1,7 @@
 
 use super::point::Point;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum TraceStatus {
 	NotDone,
 	Inside,
@@ -9,17 +9,17 @@ pub enum TraceStatus {
 }
 
 pub struct Trace {
-	origin:     Point,
-	max_length: usize,
-	path:       Vec< Point >,
+	origin:          Point,
+	max_length:      usize,
+	path:            Vec< Point >,
 }
 
 impl Trace {
 	pub fn new(max_length: usize) -> Trace {
 		Trace {
-			origin: Point::new_null(),
+			origin:          Point::new_null(),
 			max_length,
-			path:   Vec::with_capacity(max_length),
+			path:            Vec::with_capacity(max_length),
 		}
 	}
 
@@ -72,12 +72,20 @@ impl Trace {
 		self.path.push(Point::new_null());
 		self.path.last_mut().unwrap()
 	}
+
+	pub fn iter(&self) -> std::iter::Chain<std::array::IntoIter<&Point, 1>, std::slice::Iter<Point>> {
+		[&self.origin].into_iter().chain(self.path.iter())
+	}
+
+	pub fn iter_mut(&mut self) -> std::iter::Chain<std::array::IntoIter<& Point, 1>, std::slice::Iter<Point>> {
+		[&self.origin].into_iter().chain(self.path.iter())
+	}
 }
 
 impl<'a> std::iter::IntoIterator for &'a Trace {
 	type Item = &'a Point;
 	type IntoIter = std::iter::Chain<std::array::IntoIter<&'a Point, 1>, std::slice::Iter<'a, Point>>;
 	fn into_iter(self) -> Self::IntoIter {
-	    [&self.origin].into_iter().chain(self.path.iter())
+		self.iter()
 	}
 }
