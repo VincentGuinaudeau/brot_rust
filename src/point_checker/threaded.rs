@@ -3,14 +3,12 @@ use std::thread;
 use crossbeam_channel::unbounded;
 
 use crate::core::batch::PinBatch;
-use super::{ Checker, View, SearchParameters };
+use super::{ Checker, View, Args };
 use super::classic::ClassicChecker;
-
-const NUM_THREADS:usize = 15;
 
 enum ThreadJob {
 	Done,
-	Work( (View, SearchParameters, PinBatch) ),
+	Work( (View, Args, PinBatch) ),
 }
 
 pub struct ThreadedChecker {
@@ -20,7 +18,7 @@ pub struct ThreadedChecker {
 }
 
 impl ThreadedChecker {
-	pub fn new() -> ThreadedChecker {
+	pub fn new(args: Args) -> ThreadedChecker {
 		let (recieve_tx, recieve_rx) = unbounded::< PinBatch >();
 		let (send_tx, send_rx)       = unbounded::< ThreadJob >();
 
@@ -30,7 +28,9 @@ impl ThreadedChecker {
 			threads: vec![],
 		};
 
-		for _thread_num in 0..NUM_THREADS {
+		let num_threads = if args.thread_num > 0 { args.thread_num } else { num_cpus::get() };
+
+		for _thread_id in 0..num_threads {
 
 			let send_tx = send_tx.clone();
 			let tx = recieve_tx.clone();
@@ -43,8 +43,8 @@ impl ThreadedChecker {
 				while !done {
 					let job = rx.recv().unwrap();
 					match job {
-						ThreadJob::Work( (view, search_param, batch) ) => {
-							checker.push_batch(&view, &search_param, batch);
+						ThreadJob::Work( (view, args, batch) ) => {
+							checker.push_batch(&view, &args, batch);
 							tx.send(checker.collect_batch()).unwrap();
 						}
 						ThreadJob::Done => {
@@ -66,8 +66,8 @@ impl ThreadedChecker {
 impl Checker for ThreadedChecker {
 	fn get_batch_ideal_capacity(&self) -> usize { self.threads.len() + 1 }
 
-	fn push_batch(&mut self, view: &View, search_param: &SearchParameters, batch: PinBatch) {
-		self.send_tx.send(ThreadJob::Work((view.clone(), search_param.clone(), batch))).unwrap();
+	fn push_batch(&mut self, view: &View, args: &Args, batch: PinBatch) {
+		self.send_tx.send(ThreadJob::Work((view.clone(), args.clone(), batch))).unwrap();
 	}
 
 	fn collect_batch(&mut self) -> PinBatch {

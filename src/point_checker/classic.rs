@@ -1,6 +1,6 @@
 
 use std::collections::vec_deque::VecDeque;
-use super::{ Checker, View, SearchParameters };
+use super::{ Checker, View, Args };
 use crate::core::{ trace::TraceStatus, batch::PinBatch };
 
 pub struct ClassicChecker {
@@ -18,7 +18,7 @@ impl ClassicChecker {
 impl Checker for ClassicChecker {
 	fn get_batch_ideal_capacity(&self) -> usize { 1 }
 
-	fn push_batch(&mut self, view: &View, search_param: &SearchParameters, mut batch: PinBatch) {
+	fn push_batch(&mut self, view: &View, args: &Args, mut batch: PinBatch) {
 		let mut coords:Vec< (u32, u32) > = vec![];
 		for trace in batch.traces.iter_mut() {
 			while trace.status() == TraceStatus::NotDone {
@@ -28,7 +28,7 @@ impl Checker for ClassicChecker {
 
 			if 
 				trace.status() == TraceStatus::Outside &&
-				(search_param.lower_bound..search_param.upper_bound).contains(&trace.len())
+				(args.range_start..args.range_stop).contains(&trace.len())
 			{
 				for point in trace.iter_mut() {
 					if let Some((x, y)) = view.translate_point_to_view_coordinate(point) {

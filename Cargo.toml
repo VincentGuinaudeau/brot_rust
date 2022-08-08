@@ -12,5 +12,4 @@ png = "0.17.5"
 fastrand = "1.7.0"
 crossbeam = "0.8.1"
 crossbeam-channel = "0.5.5"
-
-#![feature(iter_intersperse)]
+num_cpus = "1.4.0"
