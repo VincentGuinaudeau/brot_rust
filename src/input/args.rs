@@ -56,7 +56,7 @@ pub struct Args {
 	pub point_target: usize,
 
 	/// for random algorithm, the number of points to find
-	#[clap( long = "batch", short = 'b', default_value_t = 1000 )]
+	#[clap( long = "batch", short = 'b', default_value_t = 100 )]
 	pub batch_size: usize,
 
 	/// The start of the range of points to find
@@ -72,7 +72,6 @@ pub struct Args {
 	// -p DECIMAL : (Power) The value for the power parameter. Default is 2.
 	// -f COMPLEX : (Factor) The value for the factor parameter. Default is 1+0i.
 	// -j COMPLEX : (Julia) The additionnal parameter needed for the Julia function. Default is 0+0i.
-
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum, Debug)]
