@@ -1,5 +1,5 @@
 
-use crate::core::point::Point;
+use crate::core::point::{Point, FractFloat};
 
 #[derive(Copy, Clone)]
 pub struct View {
@@ -15,7 +15,7 @@ pub struct View {
 	 * internal computed properties
 	 */
 	// The distance bewteen two pixels in the complex plan
-	step: f64
+	step: FractFloat
 }
 
 impl View {
@@ -31,6 +31,14 @@ impl View {
 
 	pub fn x_size(&self) -> i32 { self.x_size }
 	pub fn y_size(&self) -> i32 { self.y_size }
+	pub fn step(&self) -> FractFloat { self.step }
+
+	pub fn translate_view_coordinate_to_point(&self, x:i32, y:i32) -> Point {
+		Point::new(
+			self.step * ((x as FractFloat) - (self.x_size as FractFloat) / 2.) + self.position.r(),
+			self.step * ((y as FractFloat) - (self.y_size as FractFloat) / 2.) + self.position.i(),
+		)
+	}
 
 	pub fn translate_point_to_view_coordinate(&self, point: &Point) -> Option< (i32, i32) > {
 		let x = ((point.r() - self.position.r()) / self.step).floor() as i32 + self.x_size / 2;

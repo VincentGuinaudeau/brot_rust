@@ -4,7 +4,8 @@ use crossbeam_channel::unbounded;
 
 use crate::core::batch::PinBatch;
 use super::{ Checker, View, Args };
-use super::classic::ClassicChecker;
+// use super::classic::ClassicChecker;
+use super::vectorized::VectorizedChecker;
 
 enum ThreadJob {
 	Done,
@@ -37,7 +38,8 @@ impl ThreadedChecker {
 			let rx = send_rx.clone();
 
 			let handle = thread::spawn(move || {
-				let mut checker = ClassicChecker::new();
+				// let mut checker = ClassicChecker::new();
+				let mut checker = VectorizedChecker::new();
 				let mut done = false;
 
 				while !done {

@@ -4,6 +4,7 @@ use crate::input::args::Args;
 use crate::output::view::View;
 
 pub mod classic;
+pub mod vectorized;
 pub mod threaded;
 
 pub trait Checker {

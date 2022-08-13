@@ -1,3 +1,4 @@
+#![feature(portable_simd)]
 
 use clap::Parser;
 
