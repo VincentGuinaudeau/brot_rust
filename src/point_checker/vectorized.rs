@@ -21,6 +21,8 @@ impl Checker for VectorizedChecker {
 
 	fn push_batch(&mut self, view: &View, args: &Args, mut batch: PinBatch) {
 
+		// state for computing the 
+
 		let mut drum_r         = f64x8::splat(0.);
 		let mut drum_i         = f64x8::splat(0.);
 		let mut drum_squared_r = f64x8::splat(0.);
@@ -33,8 +35,8 @@ impl Checker for VectorizedChecker {
 		let loop_inc       = u64x8::splat(1);
 		let loop_max       = u64x8::splat(args.range_stop as u64);
 
-		let drum_two  = f64x8::splat(2.);
-		let drum_four = f64x8::splat(4.);
+		let const_two  = f64x8::splat(2.);
+		let const_four = f64x8::splat(4.);
 
 		let mut loaded_lanes = mask64x8::splat(false);
 		let mut mask_tmp;
@@ -66,7 +68,7 @@ impl Checker for VectorizedChecker {
 
 			// Do a round
 			drum_tmp = drum_squared_r - drum_squared_i + drum_origin_r;
-			drum_i = drum_two * drum_r * drum_i + drum_origin_i;
+			drum_i = const_two * drum_r * drum_i + drum_origin_i;
 			drum_r = drum_tmp;
 
 			drum_squared_r = drum_r * drum_r;
@@ -81,24 +83,15 @@ impl Checker for VectorizedChecker {
 				}
 			}
 
-			// If a trace is done, unload it, maybe write the coords, and maybe load another one
+			// check some conditions on all the loaded traces
 			mask_done = loop_count.lanes_ge(loop_max) & loaded_lanes;
-			mask_tmp  = (drum_squared_r + drum_squared_i).lanes_gt(drum_four);
+			mask_tmp  = (drum_squared_r + drum_squared_i).lanes_gt(const_four);
 			mask_done = mask_done | mask_tmp;
+
+			// If a trace is done, unload it, maybe write the coords, and maybe load another one
 			if mask_done.any() {
 				for i in 0..8 {
 					if mask_done.test(i) {
-						let trace = current_traces[i].as_mut().unwrap();
-						if 
-							trace.status() == TraceStatus::Outside &&
-							(args.range_start..args.range_stop).contains(&trace.len())
-						{
-							for point in trace.iter_mut() {
-								if let Some((x, y)) = view.translate_point_to_view_coordinate(point) {
-									coords.push((x as u32, y as u32));
-								}
-							}
-						}
 
 						let next_trace = trace_iter.next();
 						if let Some(trace) = next_trace {
@@ -116,6 +109,63 @@ impl Checker for VectorizedChecker {
 							loaded_lanes.set(i, false);
 						}
 					}
+				}
+			}
+		}
+
+		// now we look at all the traces, takes those that are inboud and compute the coordinates
+		let trace_iter = batch.traces.iter();
+		let mut count = 0;
+
+		let step        = f64x8::splat(view.step());
+		let position_r  = f64x8::splat(view.position().r());
+		let position_i  = f64x8::splat(view.position().i());
+		let half_x_size = i32x8::splat(view.x_size() / 2);
+		let half_y_size = i32x8::splat(view.y_size() / 2);
+		let zero        = i32x8::splat(0);
+		let x_size      = i32x8::splat(view.x_size());
+		let y_size      = i32x8::splat(view.y_size());
+
+		let mut r = f64x8::splat(0.);
+		let mut i = f64x8::splat(0.);
+
+		for trace in trace_iter {
+			if 
+				trace.status() == TraceStatus::Outside &&
+				(args.range_start..args.range_stop).contains(&trace.len())
+			{
+				for point in trace.iter() {
+					r[count] = point.r();
+					i[count] = point.i();
+					count += 1;
+
+					if count == 8 {
+
+						let x:i32x8 = ((r - position_r) / step).floor().cast() + half_x_size;
+						let y:i32x8 = ((i - position_i) / step).floor().cast() + half_y_size;
+
+						let accepted = x.lanes_ge(zero) & x.lanes_lt(x_size) & y.lanes_ge(zero) & y.lanes_lt(y_size);
+
+						for i in 0..8 {
+							if accepted.test(i) {
+								coords.push((x[i] as u32, y[i] as u32));
+							}
+						}
+						count = 0;
+					}
+				}
+			}
+		}
+
+		if count != 0 {
+			let x:i32x8 = ((r - position_r) / step).floor().cast() + half_x_size;
+			let y:i32x8 = ((i - position_i) / step).floor().cast() + half_y_size;
+
+			let accepted = x.lanes_ge(zero) & x.lanes_lt(x_size) & y.lanes_ge(zero) & y.lanes_lt(y_size);
+
+			for i in 0..count {
+				if accepted.test(i) {
+					coords.push((x[i] as u32, y[i] as u32));
 				}
 			}
 		}
