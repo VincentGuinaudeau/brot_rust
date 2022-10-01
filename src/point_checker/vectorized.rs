@@ -82,8 +82,8 @@ impl Checker for VectorizedChecker {
 			}
 
 			// If a trace is done, unload it, maybe write the coords, and maybe load another one
-			mask_done = loop_count.lanes_ge(loop_max) & loaded_lanes;
-			mask_tmp  = (drum_squared_r + drum_squared_i).lanes_gt(drum_four);
+			mask_done = loop_count.simd_ge(loop_max) & loaded_lanes;
+			mask_tmp  = (drum_squared_r + drum_squared_i).simd_gt(drum_four);
 			mask_done = mask_done | mask_tmp;
 			if mask_done.any() {
 				for i in 0..8 {
