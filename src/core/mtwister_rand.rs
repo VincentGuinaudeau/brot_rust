@@ -13,16 +13,18 @@
  * Rewritten in rust.
  */
 
-const UPPER_MASK:u32		= 0x80000000;
-const LOWER_MASK:u32		= 0x7fffffff;
-const TEMPERING_MASK_B:u32	= 0x9d2c5680;
-const TEMPERING_MASK_C:u32	= 0xefc60000;
+use std::num::Wrapping;
+
+const UPPER_MASK:Wrapping<u32> = Wrapping(0x80000000);
+const LOWER_MASK:Wrapping<u32> = Wrapping(0x7fffffff);
+const TEMPERING_MASK_B:u32     = 0x9d2c5680;
+const TEMPERING_MASK_C:u32     = 0xefc60000;
 
 const STATE_VECTOR_LENGTH:usize = 624;
 const STATE_VECTOR_M:usize      = 397; /* changes to STATE_VECTOR_LENGTH also require changes to this */
 
 pub struct Rng {
-	mt:    [u32; STATE_VECTOR_LENGTH],
+	mt:    [Wrapping<u32>; STATE_VECTOR_LENGTH],
 	index: usize,
 }
 
@@ -33,7 +35,7 @@ impl Rng {
 		 * Programming," Vol. 2 (2nd Ed.) pp.102.
 		 */
 		let mut rng = Rng {
-			mt: [0; STATE_VECTOR_LENGTH],
+			mt: [Wrapping(0); STATE_VECTOR_LENGTH],
 			index: STATE_VECTOR_LENGTH - 1,
 		};
 		rng.set_rng(seed);
@@ -41,9 +43,9 @@ impl Rng {
 	}
 
 	fn set_rng(&mut self, seed: u32) {
-		self.mt[0] = seed & (0xffffffff as u32);
+		self.mt[0] = Wrapping(seed & (0xffffffff as u32));
 		for i in 1..self.mt.len() {
-			self.mt[i] = 6069 * self.mt[i-1];
+			self.mt[i] = Wrapping(6069) * self.mt[i-1];
 		}
 	}
 
@@ -62,19 +64,19 @@ impl Rng {
 			let mut kk = 0;
 			while kk < STATE_VECTOR_LENGTH - STATE_VECTOR_M {
 				y = (self.mt[kk] & UPPER_MASK) | (self.mt[kk + 1] & LOWER_MASK);
-				self.mt[kk] = self.mt[kk + STATE_VECTOR_M]                       ^ (y >> 1) ^ mag[if y % 2 == 1 { 1 } else { 0 }];
+				self.mt[kk] = self.mt[kk + STATE_VECTOR_M]                       ^ Wrapping((y.0 >> 1) ^ mag[if y.0 % 2 == 1 { 1 } else { 0 }]);
 				kk += 1;
 			}
 			while kk < STATE_VECTOR_LENGTH - 1 {
 				y = (self.mt[kk] & UPPER_MASK) | (self.mt[kk + 1] & LOWER_MASK);
-				self.mt[kk] = self.mt[kk + STATE_VECTOR_M - STATE_VECTOR_LENGTH] ^ (y >> 1) ^ mag[if y % 2 == 1 { 1 } else { 0 }];
+				self.mt[kk] = self.mt[kk + STATE_VECTOR_M - STATE_VECTOR_LENGTH] ^ Wrapping((y.0 >> 1) ^ mag[if y.0 % 2 == 1 { 1 } else { 0 }]);
 				kk += 1;
 			}
 			y = (self.mt[STATE_VECTOR_LENGTH - 1] & UPPER_MASK) | (self.mt[0] & LOWER_MASK);
-			self.mt[STATE_VECTOR_LENGTH - 1] = self.mt[STATE_VECTOR_M - 1]       ^ (y >> 1) ^ mag[if y % 2 == 1 { 1 } else { 0 }];
+			self.mt[STATE_VECTOR_LENGTH - 1] = self.mt[STATE_VECTOR_M - 1]       ^ Wrapping((y.0 >> 1) ^ mag[if y.0 % 2 == 1 { 1 } else { 0 }]);
 			self.index = 0
 		}
-		let mut z: u32 = self.mt[self.index];
+		let mut z: u32 = self.mt[self.index].0;
 		self.index += 1;
 		z ^= z >> 11;
 		z ^= (z << 7) & TEMPERING_MASK_B;
