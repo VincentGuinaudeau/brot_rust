@@ -2,7 +2,7 @@
 use std::boxed::Box;
 use std::pin::Pin;
 
-use super::{ trace::Trace, point::Point };
+use super::trace::Trace;
 
 pub struct Batch {
 	trace_length: usize,
@@ -23,20 +23,16 @@ impl Batch {
 		Box::pin(batch)
 	}
 
-	pub fn reset<F, Arg>(&mut self, number_of_elem: usize, f: F, arg: &mut Arg) where F: Fn(&mut Arg) -> Point {
+	pub fn reset(&mut self, number_of_elem: usize) {
 
-		for index in 0..number_of_elem {
-			let maybe_elem = self.traces.get_mut(index);
-			if let Some( trace ) = maybe_elem {
-				trace.reset(f(arg));
-			}
-			else {
-				let mut new_trace = Trace::new(self.trace_length);
-				new_trace.reset(f(arg));
-				self.traces.push(new_trace);
+		if self.traces.len() > number_of_elem {
+			self.traces.truncate(number_of_elem);
+		}
+		else if self.traces.len() < number_of_elem {
+			while self.traces.len() < number_of_elem {
+				self.traces.push(Trace::new(self.trace_length));
 			}
 		}
-		self.traces.truncate(number_of_elem);
 		self.coords.clear();
 	}
 }

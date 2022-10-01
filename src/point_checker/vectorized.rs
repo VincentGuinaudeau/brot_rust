@@ -1,7 +1,7 @@
 
 use std::simd::*;
 use std::collections::vec_deque::VecDeque;
-use super::{ Checker, View, Args };
+use super::{ Checker, View, Args, TraceInitializer };
 use crate::core::{ trace::{ Trace, TraceStatus }, batch::PinBatch, point::Point };
 
 pub struct VectorizedChecker {
@@ -19,7 +19,7 @@ impl VectorizedChecker {
 impl Checker for VectorizedChecker {
 	fn get_batch_ideal_capacity(&self) -> usize { 1 }
 
-	fn push_batch(&mut self, view: &View, args: &Args, mut batch: PinBatch) {
+	fn push_batch(&mut self, view: &View, args: &Args, mut batch: PinBatch, mut trace_init: TraceInitializer) {
 
 		let mut drum_r         = f64x8::splat(0.);
 		let mut drum_i         = f64x8::splat(0.);
@@ -49,6 +49,7 @@ impl Checker for VectorizedChecker {
 		// load up the drum
 		for i in 0..8 {
 			if let Some( trace ) = trace_iter.next() {
+				let trace = trace_init(trace);
 				loaded_lanes.set(i, true);
 				let origin = trace.origin();
 				drum_origin_r[i] = origin.r();
@@ -102,6 +103,7 @@ impl Checker for VectorizedChecker {
 
 						let next_trace = trace_iter.next();
 						if let Some(trace) = next_trace {
+							let trace = trace_init(trace);
 							let origin = trace.origin();
 							drum_origin_r[i] = origin.r();
 							drum_origin_i[i] = origin.i();

@@ -15,6 +15,8 @@
 
 use std::num::Wrapping;
 
+use super::point::Point;
+
 const UPPER_MASK:Wrapping<u32> = Wrapping(0x80000000);
 const LOWER_MASK:Wrapping<u32> = Wrapping(0x7fffffff);
 const TEMPERING_MASK_B:u32     = 0x9d2c5680;
@@ -101,5 +103,9 @@ impl Rng {
 	 */
 	pub fn f64(&mut self) -> f64 {
 		(self.u64() as f64) / ((0xffffffffffffffff as u64) as f64)
+	}
+
+	pub fn point(&mut self) -> Point {
+		Point::new( self.f64() * 4. - 2., self.f64() * 4. - 2. )
 	}
 }
