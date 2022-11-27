@@ -1,6 +1,4 @@
 
-// use fastrand::Rng;
-
 use crate::core::mtwister_rand::Rng;
 use crate::core::trace::Trace;
 use crate::core::batch::{ Batch, PinBatch };
@@ -9,11 +7,10 @@ use super::{ PointFinder, View, Slate, Args, Checker };
 pub struct RandomPointFinder;
 
 fn send_new_batch(checker: &mut dyn Checker, view: &View, args: &Args, mut batch: PinBatch, rng: &mut Rng) {
-	batch.reset(args.batch_size);
+	batch.reset();
 	let mut sub_rng = Rng::new(rng.u32());
 	checker.push_batch(view, args, batch, Box::new(move |trace: &mut Trace| {
 		trace.reset(sub_rng.point());
-		trace
 	}));
 }
 
@@ -42,7 +39,7 @@ impl PointFinder for RandomPointFinder {
 		if args.point_sample > 0 {
 			// The number of rounds is known
 			for _i in 0..(args.point_sample / args.batch_size + 1) {
-				let batch = checker.collect_batch();
+				let batch = checker.collect_batch().unwrap();
 				handle_completed_batch(&mut slate, &batch, &mut good_points);
 				send_new_batch(checker, view, args, batch, &mut rng);
 			}
@@ -51,7 +48,7 @@ impl PointFinder for RandomPointFinder {
 		else if args.point_target > 0 {
 			// We have to loop until we find the specified amount of points
 			while good_points < args.point_target {
-				let batch = checker.collect_batch();
+				let batch = checker.collect_batch().unwrap();
 				handle_completed_batch(&mut slate, &batch, &mut good_points);
 				send_new_batch(checker, view, args, batch, &mut rng);
 			}
@@ -61,13 +58,13 @@ impl PointFinder for RandomPointFinder {
 			panic!("no objective");
 		}
 
+		checker.done();
+		
 		// collecting remaining work
-		for _i in 0..ideal_checker_capacity {
-			let batch = checker.collect_batch();
+		while let Some( batch ) = checker.collect_batch() {
 			handle_completed_batch(&mut slate, &batch, &mut good_points);
 		}
 
-		checker.done();
 		slate
 	}
 }

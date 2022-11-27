@@ -47,7 +47,7 @@ impl ThreadedChecker {
 					match job {
 						ThreadJob::Work( (view, args, batch, trace_init) ) => {
 							checker.push_batch(&view, &args, batch, trace_init);
-							tx.send(checker.collect_batch()).unwrap();
+							tx.send(checker.collect_batch().unwrap()).unwrap();
 						}
 						ThreadJob::Done => {
 							send_tx.send(ThreadJob::Done).unwrap();
@@ -72,8 +72,11 @@ impl Checker for ThreadedChecker {
 		self.send_tx.send(ThreadJob::Work((view.clone(), args.clone(), batch, trace_init))).unwrap();
 	}
 
-	fn collect_batch(&mut self) -> PinBatch {
-		self.recieve_rx.recv().unwrap()
+	fn collect_batch(&mut self) -> Option< PinBatch > {
+		if self.threads.len() == 0 && self.recieve_rx.is_empty() {
+			return None
+		}
+		self.recieve_rx.recv().map_or(None, |result| Some(result))
 	}
 
 	fn done(&mut self) {

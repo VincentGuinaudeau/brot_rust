@@ -1,8 +1,15 @@
 
 use std::simd::*;
 use std::collections::vec_deque::VecDeque;
+use std::cmp::min;
 use super::{ Checker, View, Args, TraceInitializer };
 use crate::core::{ trace::{ Trace, TraceStatus }, batch::PinBatch, point::Point };
+
+type FloatType = f64;
+const LANES: usize = 8;
+
+type FloatVec = Simd<FloatType, LANES>;
+type IntVec   = Simd<u64,        LANES>;
 
 pub struct VectorizedChecker {
 	waiting_to_collect: VecDeque< PinBatch >,
@@ -21,46 +28,49 @@ impl Checker for VectorizedChecker {
 
 	fn push_batch(&mut self, view: &View, args: &Args, mut batch: PinBatch, mut trace_init: TraceInitializer) {
 
-		let mut drum_r         = f64x8::splat(0.);
-		let mut drum_i         = f64x8::splat(0.);
-		let mut drum_squared_r = f64x8::splat(0.);
-		let mut drum_squared_i = f64x8::splat(0.);
-		let mut drum_origin_r  = f64x8::splat(0.);
-		let mut drum_origin_i  = f64x8::splat(0.);
+		let mut drum_r         = FloatVec::splat(0.);
+		let mut drum_i         = FloatVec::splat(0.);
+		let mut drum_squared_r = FloatVec::splat(0.);
+		let mut drum_squared_i = FloatVec::splat(0.);
+		let mut drum_origin_r  = FloatVec::splat(0.);
+		let mut drum_origin_i  = FloatVec::splat(0.);
 		let mut drum_tmp;
 
-		let mut loop_count = u64x8::splat(0);
-		let loop_inc       = u64x8::splat(1);
-		let loop_max       = u64x8::splat(args.range_stop as u64);
+		let mut loop_count = IntVec::splat(0);
+		let loop_inc       = IntVec::splat(1);
+		let loop_max       = IntVec::splat(args.range_stop as u64);
 
-		let drum_two  = f64x8::splat(2.);
-		let drum_four = f64x8::splat(4.);
+		let drum_two  = FloatVec::splat(2.);
+		let drum_four = FloatVec::splat(4.);
 
 		let mut loaded_lanes = mask64x8::splat(false);
 		let mut mask_tmp;
 		let mut mask_done;
 
-		let mut trace_iter = batch.traces.iter_mut();
-
-		let mut current_traces: [Option< &mut Trace >; 8] = [ None, None, None, None, None, None, None, None ];
+		let mut current_traces: [Trace; LANES] = [
+			Trace::new(args.range_stop),
+			Trace::new(args.range_stop),
+			Trace::new(args.range_stop),
+			Trace::new(args.range_stop),
+			Trace::new(args.range_stop),
+			Trace::new(args.range_stop),
+			Trace::new(args.range_stop),
+			Trace::new(args.range_stop),
+		];
 
 		let mut coords:Vec< (u32, u32) > = vec![];
 
 		// load up the drum
-		for i in 0..8 {
-			if let Some( trace ) = trace_iter.next() {
-				let trace = trace_init(trace);
-				loaded_lanes.set(i, true);
-				let origin = trace.origin();
-				drum_origin_r[i] = origin.r();
-				drum_origin_i[i] = origin.i();
-				loaded_lanes.set(i, true);
-				current_traces[i] = Some( trace );
-			}
-			else {
-				break;
-			}
+		for i in 0..(min(LANES, batch.trace_length)) {
+			trace_init(&mut current_traces[i]);
+
+			let origin = current_traces[i].origin();
+			drum_origin_r[i] = origin.r();
+			drum_origin_i[i] = origin.i();
+			loaded_lanes.set(i, true);
 		}
+
+		let mut trace_initialized = 8;
 
 		// while there is stuff in the drum
 		while loaded_lanes.any() {
@@ -78,7 +88,7 @@ impl Checker for VectorizedChecker {
 			// inscribe it in the traces and record it for the coords
 			for i in 0..8 {
 				if loaded_lanes.test(i) {
-					current_traces[i].as_mut().unwrap().extend(Point::new( drum_r[i], drum_i[i]));
+					current_traces[i].extend(Point::new( drum_r[i], drum_i[i]));
 				}
 			}
 
@@ -87,31 +97,31 @@ impl Checker for VectorizedChecker {
 			mask_tmp  = (drum_squared_r + drum_squared_i).simd_gt(drum_four);
 			mask_done = mask_done | mask_tmp;
 			if mask_done.any() {
-				for i in 0..8 {
+				for i in 0..LANES {
 					if mask_done.test(i) {
-						let trace = current_traces[i].as_mut().unwrap();
 						if 
-							trace.status() == TraceStatus::Outside &&
-							(args.range_start..args.range_stop).contains(&trace.len())
+							current_traces[i].status() == TraceStatus::Outside &&
+							(args.range_start..args.range_stop).contains(&current_traces[i].len())
 						{
-							for point in trace.iter_mut() {
+							for point in current_traces[i].iter_mut() {
 								if let Some((x, y)) = view.translate_point_to_view_coordinate(point) {
 									coords.push((x as u32, y as u32));
 								}
 							}
 						}
 
-						let next_trace = trace_iter.next();
-						if let Some(trace) = next_trace {
-							let trace = trace_init(trace);
-							let origin = trace.origin();
+						if trace_initialized < batch.trace_length
+						{
+							trace_init(&mut current_traces[i]);
+							trace_initialized += 1;
+
+							let origin = current_traces[i].origin();
 							drum_origin_r[i] = origin.r();
 							drum_origin_i[i] = origin.i();
 							drum_r[i] = 0.;
 							drum_i[i] = 0.;
 							drum_squared_r[i] = 0.;
 							drum_squared_i[i] = 0.;
-							current_traces[i] = Some( trace );
 							loop_count[i] = 0;
 						}
 						else {
@@ -127,7 +137,7 @@ impl Checker for VectorizedChecker {
 		self.waiting_to_collect.push_back(batch)
 	}
 
-	fn collect_batch(&mut self) -> PinBatch {
-		self.waiting_to_collect.pop_front().unwrap()
+	fn collect_batch(&mut self) -> Option< PinBatch > {
+		self.waiting_to_collect.pop_front()
 	}
 }

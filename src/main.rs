@@ -24,6 +24,7 @@ fn main() {
 
 	let view = View::new(args.view_width, args.view_height, args.view_offset, args.view_zoom);
 
+	// let mut checker = classic::ClassicChecker::new();
 	let mut checker = threaded::ThreadedChecker::new(args);
 
 	let slate = random::RandomPointFinder::execute(&view, &args, &mut checker);

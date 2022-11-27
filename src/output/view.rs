@@ -31,7 +31,6 @@ impl View {
 
 	pub fn x_size(&self) -> i32 { self.x_size }
 	pub fn y_size(&self) -> i32 { self.y_size }
-	pub fn step(&self) -> FractFloat { self.step }
 
 	pub fn translate_view_coordinate_to_point(&self, x:i32, y:i32) -> Point {
 		Point::new(

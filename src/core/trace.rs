@@ -8,6 +8,7 @@ pub enum TraceStatus {
 	Outside,
 }
 
+#[derive(Debug)]
 pub struct Trace {
 	origin:          Point,
 	max_length:      usize,
