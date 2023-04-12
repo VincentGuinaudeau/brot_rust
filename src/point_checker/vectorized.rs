@@ -2,22 +2,30 @@
 use std::simd::*;
 use std::collections::vec_deque::VecDeque;
 use std::cmp::min;
-use super::{ Checker, View, Args, TraceInitializer };
-use crate::core::{ trace::{ Trace, TraceStatus }, batch::PinBatch, point::Point };
+use super::{
+	Checker,
+	View,
+	Args,
+	TraceInitializer,
+};
+use crate::point_renderer::{ select_point_renderer, PointRenderer };
+use crate::core::{ trace::Trace, batch::PinBatch, point::{ Point, FractFloat } };
 
-type FloatType = f64;
+type FloatType = FractFloat;
 const LANES: usize = 8;
 
 type FloatVec = Simd<FloatType, LANES>;
 type IntVec   = Simd<u64,        LANES>;
 
 pub struct VectorizedChecker {
+	point_renderer: Box<dyn PointRenderer>,
 	waiting_to_collect: VecDeque< PinBatch >,
 }
 
 impl VectorizedChecker {
-	pub fn new() -> VectorizedChecker {
+	pub fn new(args: &Args) -> VectorizedChecker {
 		VectorizedChecker {
+			point_renderer: select_point_renderer(args),
 			waiting_to_collect: VecDeque::new(),
 		}
 	}
@@ -58,10 +66,10 @@ impl Checker for VectorizedChecker {
 			Trace::new(args.range_stop),
 		];
 
-		let mut coords:Vec< (u32, u32) > = vec![];
+		let mut coords:Vec< (u32, u32, u16) > = vec![];
 
 		// load up the drum
-		for i in 0..(min(LANES, batch.trace_length)) {
+		for i in 0..(min(LANES, batch.size)) {
 			trace_init(&mut current_traces[i]);
 
 			let origin = current_traces[i].origin();
@@ -99,16 +107,8 @@ impl Checker for VectorizedChecker {
 			if mask_done.any() {
 				for i in 0..LANES {
 					if mask_done.test(i) {
-						if 
-							current_traces[i].status() == TraceStatus::Outside &&
-							(args.range_start..args.range_stop).contains(&current_traces[i].len())
-						{
-							for point in current_traces[i].iter_mut() {
-								if let Some((x, y)) = view.translate_point_to_view_coordinate(point) {
-									coords.push((x as u32, y as u32));
-								}
-							}
-						}
+
+						self.point_renderer.as_ref().render(view, &mut coords, &current_traces[i]);
 
 						if trace_initialized < batch.trace_length
 						{

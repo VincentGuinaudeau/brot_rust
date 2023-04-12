@@ -15,3 +15,4 @@ pub trait Checker {
 	fn collect_batch(&mut self) -> Option< PinBatch >;
 	fn done(&mut self) {}
 }
+

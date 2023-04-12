@@ -25,7 +25,7 @@ impl View {
 			x_size,
 			y_size,
 			position,
-			step: (scale * 2.) / longer_size as f64,
+			step: (scale * 2.) / longer_size as FractFloat,
 		}	
 	}
 
@@ -34,14 +34,14 @@ impl View {
 
 	pub fn translate_view_coordinate_to_point(&self, x:i32, y:i32) -> Point {
 		Point::new(
-			self.step * ((x as FractFloat) - (self.x_size as FractFloat) / 2.) + self.position.r(),
-			self.step * ((y as FractFloat) - (self.y_size as FractFloat) / 2.) + self.position.i(),
+			self.step * <i32 as Into<FractFloat>>::into(x  - self.x_size  / 2) + self.position.r(),
+			self.step * <i32 as Into<FractFloat>>::into(y  - self.y_size  / 2) + self.position.i(),
 		)
 	}
 
 	pub fn translate_point_to_view_coordinate(&self, point: &Point) -> Option< (i32, i32) > {
-		let x = ((point.r() - self.position.r()) / self.step).floor() as i32 + self.x_size / 2;
-		let y = ((point.i() - self.position.i()) / self.step).floor() as i32 + self.y_size / 2;
+		let x = ((point.r() - self.position.r()) / self.step).round() as i32 + self.x_size / 2;
+		let y = ((point.i() - self.position.i()) / self.step).round() as i32 + self.y_size / 2;
 
 		if (0..self.x_size).contains(&x) && (0..self.y_size).contains(&y) {
 			Some((x, y))

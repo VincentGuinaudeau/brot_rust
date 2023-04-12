@@ -10,6 +10,8 @@ use crate::input::args::Args;
 mod output;
 use crate::output::view::View;
 
+mod point_renderer;
+
 mod point_checker;
 use crate::point_checker::*;
 
@@ -25,9 +27,10 @@ fn main() {
 	let view = View::new(args.view_width, args.view_height, args.view_offset, args.view_zoom);
 
 	// let mut checker = classic::ClassicChecker::new();
-	let mut checker = threaded::ThreadedChecker::new(args);
+	let mut checker = vectorized::VectorizedChecker::new(&args);
+	// let mut checker = threaded::ThreadedChecker::new(args);
 
-	let slate = random::RandomPointFinder::execute(&view, &args, &mut checker);
+	let slate = launch_finder(&view, &args, &mut checker);
 
 	slate.to_png("./out.png");
 }

@@ -28,9 +28,13 @@ impl Slate {
 		(y * self.x_size + x).try_into().unwrap()
 	}
 
-	pub fn increment(&mut self, x: u32, y: u32) -> () {
+	pub fn increment(&mut self, x: u32, y: u32, value: u16) -> () {
+		if x == 0 && y > 490 && y < 510 {
+			println!("{x} {y} {value}");
+		}
+
 		let offset: usize = self.compute_offset(x, y);
-		self.matrix[offset] += 1;
+		self.matrix[offset] += value;
 		if self.max < self.matrix[offset] {
 			self.max = self.matrix[offset];
 		}
@@ -56,7 +60,7 @@ impl Slate {
 		let mut writer = encoder.write_header().unwrap();
 
 		// multipling each pixel's value so that the greatest pixel is white
-		println!("slat max : {}", self.max);
+		println!("slate max : {}", self.max);
 		let normalized_pixels = self.matrix.iter().map(|pixel| {
 			if self.max > 0 {
 				((*pixel as u32) * (std::u16::MAX as u32) / (self.max as u32)) as u16

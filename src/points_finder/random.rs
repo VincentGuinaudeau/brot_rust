@@ -15,8 +15,8 @@ fn send_new_batch(checker: &mut dyn Checker, view: &View, args: &Args, mut batch
 }
 
 fn handle_completed_batch(slate: &mut Slate, batch: &PinBatch, good_point: &mut usize) {
-	for (x, y) in batch.coords.iter() {
-		slate.increment(*x, *y);
+	for (x, y, value) in batch.coords.iter() {
+		slate.increment(*x, *y, *value);
 	}
 	*good_point += batch.coords.len();
 }

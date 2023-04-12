@@ -38,8 +38,8 @@ impl ThreadedChecker {
 			let rx = send_rx.clone();
 
 			let handle = thread::spawn(move || {
-				// let mut checker = ClassicChecker::new();
-				let mut checker = VectorizedChecker::new();
+				// let mut checker = ClassicChecker::new(&args);
+				let mut checker = VectorizedChecker::new(&args);
 				let mut done = false;
 
 				while !done {
@@ -62,7 +62,6 @@ impl ThreadedChecker {
 		thread_checker
 	}
 }
-
 
 
 impl Checker for ThreadedChecker {

@@ -15,7 +15,7 @@
 
 use std::num::Wrapping;
 
-use super::point::Point;
+use super::point::{ Point, FractFloat };
 
 const UPPER_MASK:Wrapping<u32> = Wrapping(0x80000000);
 const LOWER_MASK:Wrapping<u32> = Wrapping(0x7fffffff);

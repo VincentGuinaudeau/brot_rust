@@ -14,8 +14,8 @@ pub struct Args {
 	// --About the image
 
 	/// The type of info to render
-	#[clap( long = "style", short = 'S', arg_enum, default_value_t = RenderStyle::Buddhabrot )]
-	pub render_type: RenderStyle,
+	#[clap( long = "style", short = 'S', arg_enum, default_value_t = RenderType::Buddhabrot )]
+	pub render_type: RenderType,
 
 	/// width of the image
 	#[clap( long = "width", short = 'w', default_value_t = 1024 )]
@@ -75,7 +75,7 @@ pub struct Args {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum, Debug)]
-pub enum RenderStyle {
+pub enum RenderType {
 	Binary,
 	Layered,
 	Buddhabrot,
@@ -85,8 +85,8 @@ pub enum RenderStyle {
 pub enum Algorithm {
 	Random,
 	Scan,
-	Tree,
-	MetroHast,
+	// Tree,
+	// MetroHast,
 }
 
 #[derive( Copy, Clone, PartialEq, Debug )]
