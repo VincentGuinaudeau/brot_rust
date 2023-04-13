@@ -14,10 +14,6 @@ fn send_new_batch(checker: &mut dyn Checker, view: &View, args: &Args, mut batch
 		let x = offset % cloned_view.x_size();
 		let y = offset / cloned_view.x_size();
 	 	trace.reset(cloned_view.translate_view_coordinate_to_point(x, y));
-
-		// if offset < 520 {
-		// 	println!("{offset}, {x} {y}, {}", trace.origin());
-		// }
 	 	offset += 1;
 	}));
 	offset + number_of_pixel as i32

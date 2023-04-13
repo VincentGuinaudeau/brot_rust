@@ -4,7 +4,7 @@ use crossbeam_channel::unbounded;
 
 use crate::core::batch::PinBatch;
 use super::{ Checker, View, Args, TraceInitializer };
-// use super::classic::ClassicChecker;
+use super::classic::ClassicChecker;
 use super::vectorized::VectorizedChecker;
 
 enum ThreadJob {

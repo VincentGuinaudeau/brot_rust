@@ -29,10 +29,6 @@ impl Slate {
 	}
 
 	pub fn increment(&mut self, x: u32, y: u32, value: u16) -> () {
-		if x == 0 && y > 490 && y < 510 {
-			println!("{x} {y} {value}");
-		}
-
 		let offset: usize = self.compute_offset(x, y);
 		self.matrix[offset] += value;
 		if self.max < self.matrix[offset] {

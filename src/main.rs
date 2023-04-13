@@ -26,9 +26,9 @@ fn main() {
 
 	let view = View::new(args.view_width, args.view_height, args.view_offset, args.view_zoom);
 
-	// let mut checker = classic::ClassicChecker::new();
-	let mut checker = vectorized::VectorizedChecker::new(&args);
-	// let mut checker = threaded::ThreadedChecker::new(args);
+	// let mut checker = classic::ClassicChecker::new(&args);
+	// let mut checker = vectorized::VectorizedChecker::new(&args);
+	let mut checker = threaded::ThreadedChecker::new(args);
 
 	let slate = launch_finder(&view, &args, &mut checker);
 

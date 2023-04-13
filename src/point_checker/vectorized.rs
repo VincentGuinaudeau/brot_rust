@@ -67,18 +67,21 @@ impl Checker for VectorizedChecker {
 		];
 
 		let mut coords:Vec< (u32, u32, u16) > = vec![];
+		let mut trace_initialized = 0;
 
 		// load up the drum
-		for i in 0..(min(LANES, batch.size)) {
+		for i in 0..min(LANES, batch.size) {
+			// println!("init lane {i}");
+
 			trace_init(&mut current_traces[i]);
+			trace_initialized += 1;
 
 			let origin = current_traces[i].origin();
 			drum_origin_r[i] = origin.r();
 			drum_origin_i[i] = origin.i();
 			loaded_lanes.set(i, true);
-		}
 
-		let mut trace_initialized = 8;
+		}
 
 		// while there is stuff in the drum
 		while loaded_lanes.any() {
@@ -93,24 +96,24 @@ impl Checker for VectorizedChecker {
 
 			loop_count = loop_count + loop_inc;
 
-			// inscribe it in the traces and record it for the coords
-			for i in 0..8 {
+			// inscribe it in the traces
+			for i in 0..LANES {
 				if loaded_lanes.test(i) {
 					current_traces[i].extend(Point::new( drum_r[i], drum_i[i]));
 				}
 			}
 
 			// If a trace is done, unload it, maybe write the coords, and maybe load another one
-			mask_done = loop_count.simd_ge(loop_max) & loaded_lanes;
+			mask_done = loop_count.simd_ge(loop_max);
 			mask_tmp  = (drum_squared_r + drum_squared_i).simd_gt(drum_four);
-			mask_done = mask_done | mask_tmp;
+			mask_done = (mask_done | mask_tmp) & loaded_lanes;
 			if mask_done.any() {
 				for i in 0..LANES {
 					if mask_done.test(i) {
 
 						self.point_renderer.as_ref().render(view, &mut coords, &current_traces[i]);
 
-						if trace_initialized < batch.trace_length
+						if trace_initialized < batch.size
 						{
 							trace_init(&mut current_traces[i]);
 							trace_initialized += 1;
